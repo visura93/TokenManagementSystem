@@ -1,0 +1,161 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Select Branch</h1>
+
+    <div class="form-group">
+        <label for="locationDropdown">Select Location:</label>
+        <select id="locationDropdown" name="Location" class="form-control">
+            <option value="">-- Select a location --</option>
+            @foreach (var location in Model.Locations)
+            {
+                <option value="@location.Id">@location.Name</option>
+            }
+        </select>
+    </div>      
+
+    <button type="button" id="generateTokenButton" class="btn btn-primary">Generate Token</button>
+    <button type="button" id="refreshButton" class="btn btn-primary">Refresh</button>
+</div>
+<div id="nowServingTicketsSection">
+  
+</div>
+
+<div class="modal fade" id="customerDetailsModal" tabindex="-1" role="dialog" aria-labelledby="customerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerDetailsModalLabel">Add Customer Details</h5>
+                <button type="button" class="close" id="generateTokenWidgetClose" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Add form fields for customer details here -->
+                <div class="form-group">
+                    <label for="inputCustomerID">Customer ID:</label>
+                    <input type="text" class="form-control" id="inputCustomerID" />
+                </div>
+                <div class="form-group">
+                    <label for="inputFirstName">First Name:</label>
+                    <input type="text" class="form-control" id="inputFirstName" />
+                </div>
+                <div class="form-group">
+                    <label for="inputLastName">Last Name:</label>
+                    <input type="text" class="form-control" id="inputLastName" />
+                </div>
+                <div class="form-group">
+                    <label for="inputCategoryID">Category ID:</label>
+                    <select class="form-control" id="inputCategoryID">
+                        <option value="">-- Select a category --</option>
+                        <option value="Unemployed">Unemployed</option>
+                        <option value="Retirees">Retirees</option>
+                        <option value="With Disabilities">With Disabilities</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="generateTokenWidgetClose1" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="generateTokenWithCustomerDetails">Generate Token</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+ 
+    $(document).ready(function () {
+        // When the "Generate Token" button is clicked
+        $("#generateTokenButton").click(function () {
+            // Show the customer details modal when the button is clicked
+            $("#customerDetailsModal").modal('show');
+        });
+
+        
+
+        $("#refreshButton").click(function () {
+            $.ajax({
+                url: '/Token/GetNowServingTickets',
+                type: 'GET',
+                success: function (data) {
+                    console.log(data); 
+
+                    $("#nowServingTicketsSection").empty();
+
+                    if (data && Array.isArray(data)) {
+                        for (var i = 0; i < data.length; i++) {
+                            var ticketNumber = data[i];
+                            var ticketHtml = "<div>Ticket #" + ticketNumber + "</div>";
+                            $("#nowServingTicketsSection").append(ticketHtml);
+                        }
+                    } else {
+                        alert("Invalid response received from the server.");
+                    }
+                },
+                error: function (error) {
+                 
+                    console.error(error); 
+                    alert("Error fetching Now Serving Tickets. Please try again later." + error);
+                }
+            });
+        });
+
+
+
+        // When the "Generate Token" button in the modal is clicked
+        $("#generateTokenWithCustomerDetails").click(function () {
+      
+            var enteredCustomerID = $("#inputCustomerID").val();
+            var enteredFirstName = $("#inputFirstName").val();
+            var enteredLastName = $("#inputLastName").val();
+            var enteredCategoryID = $("#inputCategoryID").val();
+            var customerData = {
+                CustomerID: enteredCustomerID,
+                FirstName: enteredFirstName,
+                LastName: enteredLastName,
+                CategoryID: enteredCategoryID
+            };
+           
+            $.ajax({
+                url: '/Token/GenerateToken', 
+                type: 'POST',
+                data: JSON.stringify(customerData),
+                contentType: 'application/json',
+                success: function (data) {
+                    console.log(data); 
+                    alert("Response: " + JSON.stringify(data)); 
+                    if (data && data.hasOwnProperty('Count')) {
+                        alert("Number of token: " + data['Count']);
+                    } else {
+                        alert("Invalid response received from the server.");
+                    }
+                    
+                    $("#customerDetailsModal").modal('hide');
+                },
+
+                error: function (error) {
+                 
+                    console.error(error); 
+                    alert("Error generating token. Please try again later." + error);
+                }
+            });
+          
+           
+            $("#customerDetailsModal").modal('hide');
+        });
+        $("#generateTokenWidgetClose").click( function () {
+            // Clear the entered customer details when the modal is closed
+            $("#customerDetailsModal").modal('hide');
+        });
+        $("#generateTokenWidgetClose1").click(function () {
+            // Clear the entered customer details when the modal is closed
+            $("#customerDetailsModal").modal('hide');
+        });
+    });
+</script>
